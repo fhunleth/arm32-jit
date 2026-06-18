@@ -12,68 +12,37 @@ Try it yourself by following this guide!
 - Only partially tested with OTP Suites
 - Arm32 JIT emitters are not fully optimized
 
-## Usage of the Ubuntu VM
+## Usage of the Docker environment
 
-To build and run the ARM32 JIT on a 64-bit system, you need Linux and `qemu-user`.
-We developed this on an Ubuntu 22.04 VM configured with Vagrant.
-In this repo, you will find everything you need to set up the VM yourself.
-If you already have a native Linux distro, you can try to reproduce our setup by looking at our Vagrant provisioning script.
+To build and run the ARM32 JIT on a 64-bit system, use the Docker-based Ubuntu
+22.04 environment in this repository. The image installs the cross-compilers,
+`qemu-user`, `gdb-multiarch`, Autoconf 2.72, and a host Erlang/OTP 27.0 build
+needed by the OTP build tooling.
 
-### Set up Vagrant
+### Requirements
 
-#### Set up Vagrant for VMware
-1. Get a VMware installation and a license.
-    - The free-for-personal-use license won't work and we don't know any
-workarounds (there might be though).
-2. https://developer.hashicorp.com/vagrant/downloads
-3. https://developer.hashicorp.com/vagrant/install/vmware
-    - Note that the CLI installation instructions are wrong.
-      You want to install `vagrant-vmware-utility`, not `vagrant` itself again.
-4. `vagrant plugin install vagrant-vmware-desktop`
+- Docker Desktop or a recent Docker Engine with the Compose plugin
 
-#### Set up Vagrant for VirtualBox
-1. https://www.virtualbox.org/wiki/Downloads
-2. https://developer.hashicorp.com/vagrant/downloads
-
-### Start the VM
-
-Note that Vagrant will first try to start the VM via the VMware provider,
-and then it'll fall back to VirtualBox.
-You can set the default provider as described
-[here](https://developer.hashicorp.com/vagrant/docs/providers/default).
+### Build the development image
 
 ```shell
-vagrant up
+./docker-build.sh
 ```
 
-Afterwards, connect to the VM:
+### Start a shell in the container
+
 ```shell
-vagrant ssh
-vagrant@vagrant:~$ cd arm32-jit/
-vagrant@vagrant:~/arm32-jit$ 
+./docker-shell.sh
 ```
 
-Shut down the VM:
-```shell
-vagrant halt
-```
-
-The VM will sync the current folder to `/home/vagrant/arm32-jit/` using
-`rsync` and start `vagrant rsync-auto` in the background.
-
-It will sync files only from the host to the guest machine, not the other way
-around.
-The advantage is that this does not slow down builds in the VM.
-The idea behind this setup is to keep and edit files on the host system while
-running scripts in the VM.
-
-You can use Vagrant with either a VMware desktop solution (Workspace, Fusion,
-whatever else there might be...) or VirtualBox.
+The repository is bind-mounted into `/workspace/arm32-jit`, so files created by
+the build remain visible on the host immediately. The helper script also creates
+`.docker-home/` for the container user's home directory and publishes TCP port
+`1234` for QEMU's GDB stub.
 
 ### Initialize the OTP submodule
 
-Do this outside the VM to be able to edit files on your host system.
-Vagrant will keep them synched.
+Do this once on the host before starting the container shell.
 
 ```shell
 git submodule update --init
@@ -84,28 +53,27 @@ git submodule update --init
 Cross-build and install a release:
 
 ```shell
-vagrant@vagrant:~/arm32-jit$ ./jit-arm-release-full-build.sh
+./docker-shell.sh ./jit-arm-release-full-build.sh
 ```
-The release is installed under `otp/RELEASE`:
+
+The release is installed under `otp/RELEASE`. To start the installed ARM32
+release under QEMU:
+
 ```shell
-vagrant@vagrant:~/arm32-jit$ ./otp/RELEASE/bin/erl
+./docker-shell.sh ./run_release_erl.sh
 Erlang/OTP 27 [erts-15.0] [source-4ecd178167] [32-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
 Eshell V15.0 (press Ctrl+G to abort, type help(). for help)
-1> 
+1>
 ```
 You are free to experiment with this Erlang release.
-
-In this VM, we can call the `erl` script directly because we use `binfmt-support`
-and an installed script that tells the OS to run ARM32 binaries with the
-correct emulation layer.
 
 ### Run OTP test suites with the ARM32 JIT release
 
 If you want to run test suites, we created a custom script to run OTP suites.
 
 ```shell
-vagrant@vagrant:~/arm32-jit$ ./run_otp_lib_ct_jit.sh 
+./docker-shell.sh ./run_otp_lib_ct_jit.sh
 ```
 
 This script lets you choose an app, suite, and test case. Keep in mind that a
@@ -114,7 +82,8 @@ timeout errors.
 
 ## Cross-compile OTP and Debug with GDB
 
-There are multiple scripts that can be used to compile OTP and run GDB:
+There are multiple scripts that can be used to compile OTP and run GDB from
+inside the container:
 ```shell
 # Build with debug symbols and JIT checks
 ./jit-arm-debug-full-build.sh 
@@ -135,14 +104,14 @@ recompilation script that skips the early steps and reuses compiled artifacts.
 ```
 In early development, or when debugging early crashes, it is useful to work
 with a debug build and the scripts below. They use `qemu-user` to run
-`beam.debug.smp` with a GDB server. This way, qemu emulates the processor and
+`beam.debug.smp` with a GDB server. This way, QEMU emulates the processor and
 waits for GDB for step-by-step debugging.
 
 ```shell 
-./run_debug.sh # run debug build and wait for GDB process to connect
-./run_clean.sh # run debug build without GDB port listener
-./gdb-debug.sh # Attach to a debug run that is waiting and debug with options
-./debug.sh # shortcut for ./run_debug.sh and ./gdb-debug.sh
+./docker-shell.sh ./run_debug.sh   # run debug build and wait for GDB to connect
+./docker-shell.sh ./run_clean.sh   # run debug build without a GDB listener
+./docker-shell.sh ./gdb-debug.sh   # attach from inside the container
+./docker-shell.sh ./debug.sh       # shortcut for ./run_debug.sh and ./gdb-debug.sh
 ```
 
 You can modify these scripts to target `beam.smp` instead of
@@ -150,8 +119,11 @@ You can modify these scripts to target `beam.smp` instead of
 another script for GDB.
 
 ```shell
-./gdb-release.sh
+./docker-shell.sh ./gdb-release.sh
 ```
+
+If you prefer to run GDB on the host, keep `./docker-shell.sh ./run_debug.sh`
+running and then connect to `localhost:1234` with `gdb-multiarch`.
 
 ## Inspecting JITted code
 
@@ -160,10 +132,11 @@ We run OTP with `JDdump true`; this dumps all JITted assembly into `.asm` files.
 For example, you can find JITted assembly for global functions
 in the current working directory.
 
-The global assembler output is written to `beam_asm_global.asm` in the working directory inside the VM.
+The global assembler output is written to `beam_asm_global.asm` in the working
+directory.
 
 ```shell
-vagrant@vagrant:~/arm32-jit$ cat beam_asm_global.asm
+cat beam_asm_global.asm
 global::apply_fun_shared:
     eor r2, r2, r2
     ldr r3, [r4, 64]
@@ -197,21 +170,8 @@ L99:
     add r2, r2, 20
     bx lr
 ```
-If you want to inspect the file comfortably on your host, you can copy any file
-from the VM to the current host folder using the SCP plugin:
-
-```shell
-# Install the SCP plugin if you do not have it
-vagrant plugin install vagrant-scp
-# and then
-vagrant scp default:/home/vagrant/arm32-jit/beam_asm_global.asm .
-```
-
-Or, more simply, output the file via SSH:
-
-```shell
-vagrant ssh -c "sudo cat /home/vagrant/arm32-jit/beam_asm_global.asm" > beam_asm_global.asm
-```
+Because the repository is bind-mounted into the container, generated `.asm`
+files are already available on the host without any copy step.
 ## Preloaded module content
 
 Preloaded modules are updated by running

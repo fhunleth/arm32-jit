@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 cd otp && \
 ./otp_build update_configure --no-commit && \
 ./otp_build configure --xcomp-conf=xcomp/erl-xcomp-arm-linux-debug-custom.conf && \

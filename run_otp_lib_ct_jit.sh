@@ -15,7 +15,7 @@ Options:
   --beam-name NAME       Emulator binary name: beam.debug.smp or beam.smp (default: beam.smp)
   --direct-beam          Bypass ct_run and invoke selected beam directly (default: enabled)
   --beam-bin PATH        Beam executable for --direct-beam
-                         (default: /home/vagrant/arm32-jit/otp/RELEASE/erts-15.0/bin/beam.smp)
+                         (default: auto-detect from <release-root>/erts-*/bin/<beam-name>)
   --suite NAME           Run specific suite (repeatable, e.g. logger_SUITE)
   --case NAME            Run specific case (requires exactly one --suite)
   --recompile-module M   Only run `erlc +debug_info` for M.erl in staged test dir and exit
@@ -34,7 +34,7 @@ Options:
   --no-auto-compile      Disable Common Test auto-compilation of suites/helpers
   --compile-data         Compile *_SUITE_data Erlang files before running tests
   --multiply-timetraps N Multiply Common Test timetraps by N (e.g. 4, 8)
-  --prebuild-local       Prebuild staged test modules using local host/VM `erl` (fast)
+  --prebuild-local       Prebuild staged test modules using local `erl` in the current environment (fast)
   --prebuild-erl PATH    `erl` executable to use with --prebuild-local (default: `command -v erl`)
   --prebuild-only        Prebuild and exit (do not start ct_run)
   --help                 Show this help
@@ -64,7 +64,7 @@ RELEASE_ROOT=""
 SPEC_FILE=""
 LOGDIR=""
 CT_NODE=""
-DEFAULT_BEAM_BIN="/home/vagrant/arm32-jit/otp/RELEASE/erts-15.0/bin/beam.smp"
+DEFAULT_BEAM_BIN=""
 DIRECT_BEAM=1
 BEAM_BIN="$DEFAULT_BEAM_BIN"
 BEAM_NAME="beam.smp"
@@ -785,7 +785,7 @@ else
         -root "$RELEASE_ROOT" \
         -bindir "$BEAM_BINDIR" \
         -progname erl \
-        -home "${HOME:-/home/vagrant}" \
+        -home "${HOME:-$ERL_TOP}" \
         -sname "$CT_NODE" \
         -s ct_run script_start \
         "${POST_CT_SLEEP_ACTION[@]}" \

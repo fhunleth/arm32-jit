@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 cd otp && \
 make -j"$(nproc)" all && \
 rm -rf RELEASE/* && \

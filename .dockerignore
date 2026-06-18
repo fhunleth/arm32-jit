@@ -1,0 +1,6 @@
+.docker-home
+.git
+.github
+.vagrant
+otp
+beam_asm*.asm

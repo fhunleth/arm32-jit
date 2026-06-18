@@ -1,0 +1,16 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: arm32-jit-dev
+    platform: linux/amd64
+    working_dir: /workspace/arm32-jit
+    environment:
+      HOME: /workspace/arm32-jit/.docker-home
+    ports:
+      - "1234:1234"
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/workspace/arm32-jit

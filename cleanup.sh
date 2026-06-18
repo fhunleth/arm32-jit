@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 rm -r ./otp/bin/aarch64-unknown-linux-gnu
 rm -r ./otp/bin/armv7hl-unknown-linux-gnueabi
 rm -r ./otp/erts/aarch64-unknown-linux-gnu

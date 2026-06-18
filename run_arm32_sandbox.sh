@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 arm-linux-gnueabihf-as -g hello32.asm -o hello32.o
 arm-linux-gnueabihf-gcc-11 hello32.o -o hello32.elf -nostdlib
 qemu-arm -L /usr/arm-linux-gnueabihf -g 1234 ./hello32.elf &

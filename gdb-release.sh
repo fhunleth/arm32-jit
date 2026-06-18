@@ -1,17 +1,39 @@
-gdb-multiarch -q --nh \
-  -ex 'set architecture arm' \
-  -ex 'set sysroot /usr/arm-linux-gnueabihf' \
-  -ex 'file ./otp/RELEASE/erts-15.0/bin/beam.smp' \
-  -ex 'dir ./otp/erts/emulator/armv7hl-unknown-linux-gnueabi/opt/jit' \
-  -ex 'dir ./otp/erts/emulator/armv7hl-unknown-linux-gnueabi/opt/jit/asmjit' \
-  -ex 'dir ./otp/erts/emulator/armv7hl-unknown-linux-gnueabi/opt/jit/asmjit/core' \
-  -ex 'dir ./otp/erts/emulator/armv7hl-unknown-linux-gnueabi/opt/jit/asmjit/arm' \
-  -ex 'dir ./otp/erts/emulator/beam' \
-  -ex 'dir ./otp/erts/emulator/beam/jit' \
-  -ex 'dir ./otp/erts/emulator/beam/jit/arm/32' \
-  -ex 'target remote localhost:1234' \
-  -ex 'continue' \
-;
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/arm32-jit-env.sh"
+
+REPO_ROOT="$(arm32_jit_repo_root)"
+BEAM_BIN="$(arm32_jit_find_beam beam.smp)"
+JIT_BUILD_DIR="$(arm32_jit_find_jit_build_dir || true)"
+
+GDB_ARGS=(
+  -q
+  --nh
+  -ex 'set architecture arm'
+  -ex 'set sysroot /usr/arm-linux-gnueabihf'
+  -ex "file $BEAM_BIN"
+)
+
+if [[ -n "$JIT_BUILD_DIR" ]]; then
+  GDB_ARGS+=(
+    -ex "dir $JIT_BUILD_DIR"
+    -ex "dir $JIT_BUILD_DIR/asmjit"
+    -ex "dir $JIT_BUILD_DIR/asmjit/core"
+    -ex "dir $JIT_BUILD_DIR/asmjit/arm"
+  )
+fi
+
+GDB_ARGS+=(
+  -ex "dir $REPO_ROOT/otp/erts/emulator/beam"
+  -ex "dir $REPO_ROOT/otp/erts/emulator/beam/jit"
+  -ex "dir $REPO_ROOT/otp/erts/emulator/beam/jit/arm/32"
+  -ex 'target remote localhost:1234'
+  -ex 'continue'
+)
+
+gdb-multiarch "${GDB_ARGS[@]}"
 # b apply
 # break emit_i_apply_only
 # break emit_int_code_end
