@@ -26,6 +26,10 @@ RUN apt-get update && \
         rsync \
         wget \
         xz-utils && \
+    ln -sf /usr/arm-linux-gnueabihf/lib/ld-linux-armhf.so.3 /lib/ld-linux-armhf.so.3 && \
+    rm -rf /lib/arm-linux-gnueabihf /usr/lib/arm-linux-gnueabihf && \
+    ln -sfn /usr/arm-linux-gnueabihf/lib /lib/arm-linux-gnueabihf && \
+    ln -sfn /usr/arm-linux-gnueabihf/lib /usr/lib/arm-linux-gnueabihf && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget -q "https://ftp.gnu.org/gnu/autoconf/autoconf-${AUTOCONF_VERSION}.tar.xz" && \

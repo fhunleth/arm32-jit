@@ -10,6 +10,8 @@ BEAM_BIN="${BEAM_BIN:-$(arm32_jit_find_beam "$BEAM_NAME" "$RELEASE_ROOT")}"
 BINDIR="$(dirname -- "$BEAM_BIN")"
 HOME_DIR="$(arm32_jit_home_dir)"
 
+export BINDIR=${BINDIR}
+
 exec qemu-arm -L /usr/arm-linux-gnueabihf "$BEAM_BIN" -- \
     -root "$RELEASE_ROOT" \
     -bindir "$BINDIR" \
